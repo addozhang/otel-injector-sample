@@ -222,4 +222,4 @@ Welcome to submit Issues and Pull Requests to improve this example project!
 
 ## 📄 License
 
-This project uses the Apache 2.0 license.
+This project uses the MIT license. See [LICENSE](LICENSE) for details.
