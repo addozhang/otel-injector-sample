@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "8888:8888"   # Metrics endpoint
+      - "8889:8889"   # Health check
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml
+    networks:
+      - otel-network
+    depends_on:
+      - jaeger
+
+  # Jaeger for tracing visualization
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # Jaeger Collector
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - otel-network
+
+  # Service A - Java Spring Boot (Authentication Service)
+  service-a:
+    build:
+      context: ./service-a
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - OTEL_SERVICE_NAME=service-a
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_RESOURCE_ATTRIBUTES=service.language=java,service.team=auth
+    networks:
+      - otel-network
+    depends_on:
+      - otel-collector
+
+  # Service B - Node.js Express (Product Service)
+  service-b:
+    build:
+      context: ./service-b
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - OTEL_SERVICE_NAME=service-b
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_RESOURCE_ATTRIBUTES=service.language=nodejs,service.team=product
+    networks:
+      - otel-network
+    depends_on:
+      - otel-collector
+
+  # Service C - .NET ASP.NET Core (Order Service)
+  service-c:
+    build:
+      context: ./service-c
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - OTEL_SERVICE_NAME=service-c
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_RESOURCE_ATTRIBUTES=service.language=dotnet,service.team=order
+    networks:
+      - otel-network
+    depends_on:
+      - otel-collector
+
+networks:
+  otel-network:
+    driver: bridge
+
+volumes:
+  jaeger_data:

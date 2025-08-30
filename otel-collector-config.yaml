@@ -1,0 +1,39 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 75
+    spike_limit_percentage: 15
+  batch:
+    send_batch_size: 10000
+    timeout: 10s
+
+exporters:
+  debug:
+    verbosity: detailed
+  otlp/jaeger:
+    endpoint: "jaeger:4317"
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: []
+      exporters: [debug, otlp/jaeger]
+    metrics:
+      receivers: [otlp]
+      processors: []
+      exporters: [debug]
+    logs:
+      receivers: [otlp]
+      processors: []
+      exporters: [debug]
